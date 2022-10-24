@@ -1,5 +1,4 @@
 # models.py
-import email
 from django.db import models
 
 class Parent(models.Model):
@@ -21,11 +20,17 @@ class Student(models.Model):
     school_class = models.IntegerField()
     age = models.IntegerField()
     parent = models.ForeignKey(Parent,related_name='student', on_delete=models.CASCADE)
+    mark = models.IntegerField()
+
     def __str__(self):
         return self.first_name+" "+self.last_name
     
     class Meta:
         db_table = 'student'
+        constraints=[
+			models.CheckConstraint(check= models.Q(first_name__gte='A' ) & models.Q(first_name__lte='Z') , name='first_name_uppercase'),
+            models.CheckConstraint(check= models.Q(last_name__gte='A' ) & models.Q(last_name__lte='Z') , name='last_name_uppercase'),
+		]
 
 class Subject(models.Model):
     name = models.CharField(max_length=50)
