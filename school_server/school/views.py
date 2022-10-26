@@ -1,108 +1,76 @@
-from django.http import JsonResponse
-from django.views import View
-from django.core import serializers
-from school.models import Student as StudentModel
-from school.models import Parent as ParentModel
-from school.models import Subject as SubjectModel
-from school.forms import StudentForm
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from school.models import Student as StudentModel , Parent as ParentModel , Subject as SubjectModel
+from school.serializers import StudentSerializer , ParentSerializer , SubjectSerializer
+from rest_framework import mixins , generics , status
 import json
 # Create your views here.
 
-class Student(View):
+class Student(APIView):
     def get(self,request):
-        data = serializers.serialize('json' , StudentModel.objects.all())
-        return JsonResponse(data, safe=False)
+        data = StudentSerializer(StudentModel.objects.all(), many=True)
+        return Response(data.data)
 
     def post(self , request):
-        form = StudentForm(json.loads(request.body))
-        if form.is_valid():   
-            form.save()
-            return JsonResponse({'message':'Student created successfully'}, status=201)
-        else:
-            return JsonResponse({'message':form.errors}, status=422)
+        serializer = StudentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
 
-class SpecficStudent(View):
-    def get(self , request , *args , **kwargs):
-        data = serializers.serialize('json' , StudentModel.objects.filter(id=kwargs['id']))
-        return JsonResponse(data, safe=False)
+class SpecficStudent(APIView):
+    def get(self , request , id):
+        try:
+            data = StudentSerializer(StudentModel.objects.get(id=id))
+            return Response(data.data)
+        except StudentModel.DoesNotExist:
+            return Response(status.HTTP_404_NOT_FOUND)
 
-    def post(self , request , *args , **kwargs):
-        form = StudentForm(json.loads(request.body))
-        if form.is_valid():   
-            form.save()
-            return JsonResponse({'message':'Student created successfully'}, status=201)
-        else:
-            return JsonResponse({'message':form.errors}, status=422)
+    def put(self , request , id):
+        try:
+            serializer = StudentSerializer(instance=StudentModel.objects.get(id=id) , data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors)
+        except StudentModel.DoesNotExist:
+            return Response(status.HTTP_404_NOT_FOUND)
 
-    def put(self , request , *args , **kwargs):
-        data = json.loads(request.body)
-        form = StudentForm(data)
-        if form.is_valid():
-            student = StudentModel.objects.get(id=kwargs['id']).update(**data)
-            return JsonResponse({'message':'Student updated successfully'}, status=201)
-        return JsonResponse({'message':form.errors}, status=422)
-
-    def delete(self , request , *args , **kwargs):
-        StudentModel.objects.filter(id=kwargs['id']).delete()
-        return JsonResponse({'message':'Student deleted successfully'}, status=201)
-
-class Parent(View):
-    def get(self , request):
-        data = serializers.serialize('json' , ParentModel.objects.all())
-        return JsonResponse(data, safe=False)
-
-    def post(self , request):
-        data = json.loads(request.body)
-        ParentModel.objects.create(**data)
-        return JsonResponse({'message':'Parent created successfully'}, status=201)
-
-class SpecficParent(View):
-    def get(self , request , *args , **kwargs):
-        data = serializers.serialize('json' , ParentModel.objects.filter(id=kwargs['id']))
-        return JsonResponse(data, safe=False)
-
-    def post(self , request , *args , **kwargs):
-        data = json.loads(request.body)
-        ParentModel.objects.create(**data)
-        return JsonResponse({'message':'Parent created successfully'}, status=201)
-
-    def put(self , request , *args , **kwargs):
-        data = json.loads(request.body)
-        ParentModel.objects.filter(id=kwargs['id']).update(**data)
-        return JsonResponse({'message':'Parent updated successfully'}, status=201)
+    def delete(self , request , id):
+        try:
+            StudentModel.objects.get(id=id).delete()
+            return Response(status.HTTP_200_OK)
+        except StudentModel.DoesNotExist:
+            return Response(status.HTTP_404_NOT_FOUND)
         
+class Parent(generics.GenericAPIView, mixins.ListModelMixin, mixins.CreateModelMixin):
+    queryset= ParentModel.objects.all()
+    serializer_class = ParentSerializer
+    def get (self, request , *args, **kwargs):
+        return self.list(request , *args, **kwargs)
 
-    def delete(self , request , *args , **kwargs):
-        ParentModel.objects.filter(id=kwargs['id']).delete()
-        return JsonResponse({'message':'Parent deleted successfully'}, status=201)
+    def post(self, request , *args, **kwargs):
+        return self.create(request , *args, **kwargs)
 
-class Subject(View):
-    def get(self , request):
-        data = serializers.serialize('json' , SubjectModel.objects.all())
-        return JsonResponse(data, safe=False)
-        
-    def post(self , request):
-        data = json.loads(request.body)
-        SubjectModel.objects.create(**data)
-        return JsonResponse({'message':'Subject created successfully'}, status=201)
+class SpecficParent(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
+    queryset= ParentModel.objects.all()
+    serializer_class = ParentSerializer
+    def get (self, request , *args, **kwargs):
+        return self.retrieve(request , *args, **kwargs)
 
-class SpecficSubject(View):
-    def get(self , request , *args , **kwargs):
-        data = serializers.serialize('json' , SubjectModel.objects.filter(id=kwargs['id']))
-        return JsonResponse(data, safe=False)
+    def put(self, request , *args, **kwargs):
+        return self.update(request , *args, **kwargs)
 
-    def post(self , request , *args , **kwargs):
-        data = json.loads(request.body)
-        SubjectModel.objects.create(**data)
-        return JsonResponse({'message':'Subject created successfully'}, status=201)
-        
+    def delete(self, request , *args, **kwargs):
+        return self.destroy(request , *args, **kwargs)
+    
 
-    def put(self , request , *args , **kwargs):
-        data = json.loads(request.body)
-        SubjectModel.objects.filter(id=kwargs['id']).update(**data)
-        return JsonResponse({'message':'Subject updated successfully'}, status=201)
-        
-    def delete(self , request , *args , **kwargs):
-        SubjectModel.objects.filter(id=kwargs['id']).delete()
-        return JsonResponse({'message':'Subject deleted successfully'}, status=201)
+class Subject(generics.ListAPIView , generics.CreateAPIView):
+    queryset= SubjectModel.objects.all()
+    serializer_class = SubjectSerializer
+
+
+class SpecficSubject( generics.RetrieveAPIView , generics.UpdateAPIView , generics.DestroyAPIView):
+    queryset= SubjectModel.objects.all()
+    serializer_class = SubjectSerializer
 

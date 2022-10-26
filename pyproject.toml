@@ -10,6 +10,7 @@ packages = [{include = "django_school_api"}]
 python = "^3.9"
 django = "^4.1.2"
 django-environ = "^0.9.0"
+djangorestframework = "^3.14.0"
 
 
 [build-system]
