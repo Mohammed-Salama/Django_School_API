@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'school',
     'rest_framework',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -133,7 +134,16 @@ REST_FRAMEWORK = {
 
  
 }
-
+SWAGGER_SETTINGS = {
+     "SECURITY_DEFINITIONS": {
+        "JWT [Bearer {JWT}]": {
+            "name": "Authorization",
+            "type": "apiKey",
+            "in": "header",
+        }
+    },
+    
+}
 
 #    'DEFAULT_AUTHENTICATION_CLASSES': [
 #         'rest_framework_simplejwt.authentication.JWTAuthentication',
